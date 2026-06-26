@@ -1,0 +1,21 @@
+[versions]
+kotlin = "2.0.20"
+jvmTarget = "21"
+guava = "33.2.1-jre"
+kotest = "5.9.1"
+junitPlatform = "1.10.2"
+detekt = "1.23.7"
+ktlint = "12.1.1"
+kover = "0.9.8"
+
+[libraries]
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+kotest-runner-junit5 = { group = "io.kotest", name = "kotest-runner-junit5", version.ref = "kotest" }
+kotest-assertions-core = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotest" }
+detekt-formatting = { group = "io.gitlab.arturbosch.detekt", name = "detekt-formatting", version.ref = "detekt" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
