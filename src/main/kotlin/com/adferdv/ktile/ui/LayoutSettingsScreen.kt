@@ -1,5 +1,8 @@
+package com.adferdv.ktile.ui
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,13 +32,18 @@ import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Suppress("CyclomaticComplexMethod", "LongMethod", "CognitiveComplexMethod", "ComplexCondition")
 @Composable
 fun LayoutSettingsScreen() {
     val columnWeights = remember { mutableStateListOf(1, 1, 1, 1) }
@@ -50,14 +57,30 @@ fun LayoutSettingsScreen() {
             )
         }
     val focusRequester = remember { FocusRequester() }
-    var selectedPosition = remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    var usedKeys = remember { mutableStateOf<Set<String>>(keyLabels.flatten().toSet()) }
-    var showDialog = remember { mutableStateOf(false) }
-    var dialogMessage = remember { mutableStateOf("") }
+    val selectedPosition = remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val usedKeys = remember { mutableStateOf(keyLabels.flatten().toSet()) }
+    val showDialog = remember { mutableStateOf(false) }
+    val dialogMessage = remember { mutableStateOf("") }
+
+    fun addNewRow() {
+        val newRowKeys = List(columnWeights.size) { "?" }
+        rowWeights.add(1)
+        keyLabels.add(mutableStateListOf<String>().apply { addAll(newRowKeys) })
+    }
+
+    fun removeRow(index: Int) {
+        val removedKeys = keyLabels[index].toSet()
+        keyLabels.removeAt(index)
+        rowWeights.removeAt(index)
+        usedKeys.value -= removedKeys
+        selectedPosition.value?.let { (row, _) ->
+            if (row == index) selectedPosition.value = null
+        }
+    }
 
     fun clearSelectionIfHidden() {
         selectedPosition.value?.let { (row, col) ->
-            if (rowWeights[row] == 0 || columnWeights[col] == 0) {
+            if (row >= rowWeights.size || col >= columnWeights.size || columnWeights[col] == 0) {
                 selectedPosition.value = null
             }
         }
@@ -69,43 +92,33 @@ fun LayoutSettingsScreen() {
                 .fillMaxSize()
                 .padding(16.dp)
                 .focusRequester(focusRequester)
+                .testTag("layout-screen")
                 .onKeyEvent { keyEvent ->
                     if (keyEvent.type == KeyEventType.KeyDown) {
-                        val displayChar = keyEvent.awtEventOrNull?.keyChar
+                        val displayChar = getDisplayCharFromKeyEvent(keyEvent)
+                        if (displayChar != null && displayChar.length == 1 && displayChar[0].isLetterOrDigit()) {
+                            selectedPosition.value?.let { (row, col) ->
+                                if (row in keyLabels.indices && col in keyLabels[row].indices) {
+                                    val oldKey = keyLabels[row][col]
+                                    val newKey = displayChar.uppercase()
 
-                        if (displayChar != null) {
-                            if (displayChar.isLetterOrDigit()) {
-                                selectedPosition.value?.let { (row, col) ->
-                                    if (row in keyLabels.indices &&
-                                        col in keyLabels[row].indices
-                                    ) {
-                                        val oldKey = keyLabels[row][col]
-                                        val newKey =
-                                            if (displayChar.isLetter()) {
-                                                displayChar.uppercase()
-                                            } else {
-                                                displayChar.toString()
-                                            }
-
-                                        if (usedKeys.value.contains(newKey)) {
-                                            showDialog.value = true
-                                            dialogMessage.value =
-                                                "Selected key is already added to the layout.\n" +
-                                                "Please, replace current position with another key and try again."
-                                        } else {
-                                            keyLabels[row][col] = newKey
-                                            usedKeys.value = usedKeys.value - oldKey + newKey
-                                            selectedPosition.value = null
-                                        }
-
-                                        return@onKeyEvent true
+                                    if (usedKeys.value.contains(newKey)) {
+                                        showDialog.value = true
+                                        dialogMessage.value =
+                                            "Selected key is already added to the layout.\n" +
+                                            "Please, replace current position with another key and try again."
+                                    } else {
+                                        keyLabels[row][col] = newKey
+                                        usedKeys.value = usedKeys.value - oldKey + newKey
+                                        selectedPosition.value = null
                                     }
+                                    return@onKeyEvent true
                                 }
                             }
                         }
                     }
                     false
-                },
+                }.focusable(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -134,23 +147,18 @@ fun LayoutSettingsScreen() {
                         clearSelectionIfHidden()
                     },
                     modifier = Modifier.weight(1f),
+                    testTag = "col-$colIndex",
                 )
             }
         }
 
         rowWeights.forEachIndexed { rowIndex, rowWeight ->
-            val rowModifier =
-                if (rowWeight > 0) {
-                    Modifier.weight(rowWeight.toFloat())
-                } else {
-                    Modifier.height(48.dp)
-                }
-
-            Box(
-                modifier = Modifier.fillMaxWidth().then(rowModifier),
-            ) {
+            if (rowWeight > 0) {
                 Row(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(rowWeight.toFloat()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -161,59 +169,67 @@ fun LayoutSettingsScreen() {
                         },
                         onDecrement = {
                             val newVal = (rowWeights[rowIndex] - 1).coerceAtLeast(0)
-                            rowWeights[rowIndex] = newVal
+                            if (newVal == 0) {
+                                removeRow(rowIndex)
+                            } else {
+                                rowWeights[rowIndex] = newVal
+                            }
                             clearSelectionIfHidden()
                         },
                         modifier = Modifier.width(80.dp),
+                        testTag = "row-$rowIndex",
                     )
 
-                    if (rowWeight > 0) {
-                        Row(
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            val rowLabels = keyLabels.getOrElse(rowIndex) { mutableStateListOf() }
-                            columnWeights.forEachIndexed { colIndex, colWeight ->
-                                if (colWeight > 0) {
-                                    val label = rowLabels.getOrElse(colIndex) { "?" }
-                                    KeyChip(
-                                        label = label,
-                                        isSelected = selectedPosition.value == rowIndex to colIndex,
-                                        onClick = {
-                                            selectedPosition.value =
-                                                if (selectedPosition.value ==
-                                                    rowIndex to colIndex
-                                                ) {
-                                                    null
-                                                } else {
-                                                    rowIndex to colIndex
-                                                }
-                                        },
-                                        modifier =
-                                            Modifier
-                                                .weight(colWeight.toFloat())
-                                                .fillMaxHeight(),
-                                    )
-                                }
+                    Row(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        val rowLabels = keyLabels[rowIndex]
+                        columnWeights.forEachIndexed { colIndex, colWeight ->
+                            if (colWeight > 0) {
+                                val label = rowLabels.getOrElse(colIndex) { "?" }
+                                KeyTile(
+                                    label = label,
+                                    isSelected = selectedPosition.value == rowIndex to colIndex,
+                                    onClick = {
+                                        selectedPosition.value =
+                                            if (selectedPosition.value == rowIndex to colIndex) {
+                                                null
+                                            } else {
+                                                rowIndex to colIndex
+                                            }
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .weight(colWeight.toFloat())
+                                            .fillMaxHeight(),
+                                )
                             }
                         }
                     }
-
-                    if (showDialog.value == true) {
-                        AlertDialog(
-                            onDismissRequest = { showDialog.value = false },
-                            title = { Text("Error") },
-                            text = { Text(dialogMessage.value) },
-                            confirmButton = {
-                                TextButton(onClick = { showDialog.value = false }) {
-                                    Text("OK")
-                                }
-                            },
-                            dismissButton = null,
-                        )
-                    }
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            TextButton(onClick = { addNewRow() }, enabled = rowWeights.size < MAX_ROWS) {
+                Text("Add Row")
+            }
+        }
+
+        if (showDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showDialog.value = false },
+                title = { Text("Error") },
+                text = { Text(dialogMessage.value) },
+                confirmButton = {
+                    TextButton(onClick = { showDialog.value = false }) { Text("OK") }
+                },
+                dismissButton = null,
+            )
         }
     }
 }
@@ -225,6 +241,7 @@ fun WeightControl(
     onDecrement: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    testTag: String? = null,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -243,11 +260,14 @@ fun WeightControl(
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier =
-                Modifier.size(28.dp).clickable(
-                    enabled = enabled && value > 0,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) { onDecrement() },
+                Modifier
+                    .size(28.dp)
+                    .testTag(testTag?.let { "$it-minus" } ?: "")
+                    .clickable(
+                        enabled = enabled && value > 0,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { onDecrement() },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         Text(
@@ -255,24 +275,27 @@ fun WeightControl(
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier =
-                Modifier.size(28.dp).clickable(
-                    enabled = enabled,
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) { onIncrement() },
+                Modifier
+                    .size(28.dp)
+                    .testTag(testTag?.let { "$it-plus" } ?: "")
+                    .clickable(
+                        enabled = enabled,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { onIncrement() },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
 }
 
 @Composable
-fun KeyChip(
+fun KeyTile(
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val purple = Color(0xFF9C27B0)
+    val purple = Color(PURPLE_COLOR)
 
     Surface(
         modifier =
@@ -308,5 +331,20 @@ fun KeyChip(
                 fontWeight = FontWeight.Bold,
             )
         }
+    }
+}
+
+fun getDisplayCharFromKeyEvent(keyEvent: KeyEvent): String? {
+    keyEvent.awtEventOrNull?.let { awtEvent ->
+        return java.awt.event.KeyEvent
+            .getKeyText(awtEvent.keyCode)
+            .takeIf { it.length == 1 && it[0].isLetterOrDigit() }
+            ?.uppercase()
+    }
+
+    return when (val code = keyEvent.key.nativeKeyCode) {
+        in NUMBER_SIXTY_FIVE..NUMBER_NINTY -> code.toChar().toString().uppercase()
+        in NUMBER_FORTY_EIGHT..NUMBER_FIFTY_SEVEN -> code.toChar().toString()
+        else -> null
     }
 }

@@ -1,3 +1,6 @@
+@file:OptIn(ExperimentalComposeLibrary::class)
+
+import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 group = "com.adferdv"
@@ -14,9 +17,26 @@ plugins {
 
 dependencies {
     implementation(compose.desktop.currentOs)
-    testImplementation(kotlin("test"))
+
+    // Kotest (unit tests)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kotest.assertions.core)
+
+    // ─── Compose UI Tests ───
+    // Desktop runtime for tests
+    testImplementation(compose.desktop.currentOs)
+
+    // Core UI test API (provides `androidx.compose.ui.test` package)
+    testImplementation(compose.uiTest)
+
+    // JUnit4 integration (provides `createComposeRule`)
+    testImplementation(compose.desktop.uiTestJUnit4)
+
+    // JUnit4 runtime (for @Test, @Rule)
+    testImplementation("junit:junit:4.13.2")
+
+    // Allows JUnit4 tests to run on the JUnit5 platform
+    testImplementation("org.junit.vintage:junit-vintage-engine:5.10.1")
 }
 
 compose.desktop {
