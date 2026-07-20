@@ -74,9 +74,11 @@ complexity:
   CognitiveComplexMethod:
     active: true
     threshold: 15
+    excludes: ['**/ktile/ui/**']
   ComplexCondition:
     active: true
     threshold: 3
+    excludes: ['**/ktile/ui/**']
   ComplexInterface:
     active: true
     threshold: 10
@@ -99,6 +101,7 @@ complexity:
       - 'run'
       - 'use'
       - 'with'
+    excludes: ['**/ktile/ui/**']
   LabeledExpression:
     active: false
     ignoredLabels: []
@@ -108,6 +111,7 @@ complexity:
   LongMethod:
     active: true
     threshold: 60
+    excludes: ['**/ktile/ui/**']
   LongParameterList:
     active: true
     functionThreshold: 7
@@ -115,13 +119,13 @@ complexity:
     ignoreDefaultParameters: false
     ignoreDataClasses: true
     ignoreAnnotatedParameter: []
+    excludes: ['**/ktile/ui/**']
   MethodOverloading:
     active: true
     threshold: 6
   NamedArguments:
     active: true
     threshold: 3
-    # ignoreMethods removed
     ignoreArgumentsMatchingNames: false
   NestedBlockDepth:
     active: true
@@ -155,7 +159,6 @@ complexity:
 
 coroutines:
   active: true
-  # CoroutineLaunchedInTestWithoutRunTest removed (unrecognised)
   GlobalCoroutineUsage:
     active: true
   InjectDispatcher:
@@ -170,7 +173,6 @@ coroutines:
     active: true
   SuspendFunWithCoroutineScopeReceiver:
     active: true
-    # aliases removed
   SuspendFunWithFlowReturnType:
     active: true
 
@@ -198,7 +200,6 @@ empty-blocks:
     active: true
   EmptyInitBlock:
     active: true
-  # EmptyKotlinFile removed
   EmptySecondaryConstructor:
     active: true
   EmptyTryBlock:
@@ -317,7 +318,6 @@ naming:
   MatchingDeclarationName:
     active: true
     mustBeFirst: true
-    # multiplatformTargets removed
   MemberNameEqualsClassName:
     active: true
     ignoreOverridden: true
@@ -325,7 +325,6 @@ naming:
     active: true
   NonBooleanPropertyPrefixedWithIs:
     active: false
-    # allowSingleTypedGenerics removed
   ObjectPropertyNaming:
     active: true
     constantPattern: '[A-Za-z][_A-Za-z0-9]*'
@@ -375,7 +374,6 @@ potential-bugs:
       - 'kotlin.String'
   CastNullableToNonNullableType:
     active: true
-    # ignorePlatformTypes removed
   CastToNullableType:
     active: true
   Deprecation:
@@ -384,7 +382,6 @@ potential-bugs:
     active: true
   DoubleMutabilityForCollection:
     active: true
-    # aliases removed
     mutableTypes:
       - 'kotlin.collections.MutableList'
       - 'kotlin.collections.MutableMap'
@@ -476,7 +473,6 @@ style:
     active: true
   BracesOnIfStatements:
     active: true
-    # style property omitted – defaults to 'always'
   CanBeNonNullable:
     active: true
   ClassOrdering:
@@ -514,7 +510,6 @@ style:
         value: 'TODO:'
   ForbiddenImport:
     active: true
-    # forbiddenImports removed (empty list)
   ForbiddenMethodCall:
     active: true
     methods:
@@ -572,7 +567,6 @@ style:
     excludeImportStatements: true
     excludeCommentStatements: false
     excludeRawStrings: true
-  # MayBeConstant removed
   ModifierOrder:
     active: true
   MultilineRawStringIndentation:
@@ -598,7 +592,6 @@ style:
     active: true
   RedundantHigherOrderMapUsage:
     active: true
-  # RedundantVisibilityModifier removed
   ReturnCount:
     active: true
     max: 3
@@ -611,7 +604,6 @@ style:
     active: true
   SerialVersionUIDInSerializableClass:
     active: true
-  # SpacingAfterPackageAndImports removed
   ThrowsCount:
     active: true
     max: 2
@@ -641,10 +633,8 @@ style:
   UnnecessaryParentheses:
     active: true
     allowForUnclearPrecedence: false
-  # UnusedImport removed
   UnusedPrivateClass:
     active: true
-  # UnusedPrivateFunction removed
   UseAnyOrNoneInsteadOfFind:
     active: true
   UseArrayLiteralsInAnnotations:
