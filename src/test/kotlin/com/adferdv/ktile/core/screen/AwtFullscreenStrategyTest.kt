@@ -9,7 +9,6 @@ import java.awt.Frame
 import java.awt.GraphicsEnvironment
 
 class AwtFullscreenStrategyTest {
-
     @Before
     fun requireDisplay() {
         assumeFalse("Skipping: headless environment", GraphicsEnvironment.isHeadless())
