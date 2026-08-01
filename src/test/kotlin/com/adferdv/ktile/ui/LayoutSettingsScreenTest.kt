@@ -1,5 +1,7 @@
 package com.adferdv.ktile.ui
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
@@ -10,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
+import com.adferdv.ktile.viewmodel.SettingsViewModel
 import org.junit.Rule
 import org.junit.Test
 
@@ -18,9 +21,17 @@ class LayoutSettingsScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    private fun setContentWithLayoutSettings() {
+        composeTestRule.setContent {
+            val coroutineScope = rememberCoroutineScope()
+            val viewModel = remember { SettingsViewModel(coroutineScope) }
+            LayoutSettingsScreen(viewModel)
+        }
+    }
+
     @Test
     fun clickingColumnIncrementButtonIncreasesWeightNumber() {
-        composeTestRule.setContent { LayoutSettingsScreen() }
+        setContentWithLayoutSettings()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText("2").assertDoesNotExist()
@@ -34,7 +45,7 @@ class LayoutSettingsScreenTest {
 
     @Test
     fun decrementRowWeightToZeroRemovesRow() {
-        composeTestRule.setContent { LayoutSettingsScreen() }
+        setContentWithLayoutSettings()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag("row-0-minus").performClick()
@@ -45,7 +56,7 @@ class LayoutSettingsScreenTest {
 
     @Test
     fun pressingKeyUpdatesSelectedTile() {
-        composeTestRule.setContent { LayoutSettingsScreen() }
+        setContentWithLayoutSettings()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag("layout-screen").performClick()
@@ -59,7 +70,7 @@ class LayoutSettingsScreenTest {
 
     @Test
     fun duplicateKeyShowsDialog() {
-        composeTestRule.setContent { LayoutSettingsScreen() }
+        setContentWithLayoutSettings()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag("layout-screen").performClick()
@@ -82,7 +93,7 @@ class LayoutSettingsScreenTest {
 
     @Test
     fun addingRowWorks() {
-        composeTestRule.setContent { LayoutSettingsScreen() }
+        setContentWithLayoutSettings()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText("Add Row").performClick()

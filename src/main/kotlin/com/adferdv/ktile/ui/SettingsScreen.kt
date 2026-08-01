@@ -24,6 +24,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
         )
-        LayoutSettingsScreen()
+        LayoutSettingsScreen(viewModel)
     }
 }

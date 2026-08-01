@@ -42,20 +42,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.adferdv.ktile.viewmodel.SettingsViewModel
 
 @Suppress("CyclomaticComplexMethod", "LongMethod", "CognitiveComplexMethod", "ComplexCondition")
 @Composable
-fun LayoutSettingsScreen() {
-    val columnWeights = remember { mutableStateListOf(1, 1, 1, 1) }
-    val rowWeights = remember { mutableStateListOf(1, 1, 1) }
-    val keyLabels =
-        remember {
-            mutableStateListOf(
-                mutableStateListOf("Q", "W", "E", "R"),
-                mutableStateListOf("A", "S", "D", "F"),
-                mutableStateListOf("Z", "X", "C", "V"),
-            )
-        }
+fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
+    val layoutSettings = viewModel.layoutSettings
+    val columnWeights = layoutSettings.columnWeights
+    val rowWeights = layoutSettings.rowWeights
+    val keyLabels = layoutSettings.keyLabels
     val focusRequester = remember { FocusRequester() }
     val selectedPosition = remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val usedKeys = remember { mutableStateOf(keyLabels.flatten().toSet()) }
