@@ -17,6 +17,7 @@ plugins {
 
 dependencies {
     implementation(compose.desktop.currentOs)
+    implementation(libs.jna.platform)
 
     // Kotest (unit tests)
     testImplementation(libs.kotest.runner.junit5)
@@ -42,6 +43,11 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.adferdv.ktile.MainKt"
+        jvmArgs +=
+            listOf(
+                "--add-opens=java.desktop/java.awt=ALL-UNNAMED",
+                "--add-opens=java.desktop/sun.awt.X11=ALL-UNNAMED",
+            )
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "ktile"
