@@ -11,6 +11,15 @@ import java.awt.Window
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
+private data class X11Data(
+    val x11: X11,
+    val display: X11.Display,
+    val root: X11.Window,
+    val netWmState: X11.Atom,
+    val maxVertAtom: X11.Atom,
+    val maxHorzAtom: X11.Atom,
+)
+
 object X11FullscreenStrategy : FullscreenStrategy {
     private const val NET_WM_STATE_ADD = 1L
     private const val NO_DATA = 0L
@@ -18,7 +27,21 @@ object X11FullscreenStrategy : FullscreenStrategy {
     private const val MAX_ATTEMPTS = 3
     private const val RETRY_DELAY_MS = 300L
     private const val FULLSCREEN_POLL_INTERVAL_MS = 50L
+    private const val DATA_SLOT_FIRST_UNUSED = 3
     private const val MAX_STATE_ATOMS = 1024L
+
+    private fun extractX11Data(
+        x11: X11,
+        display: X11.Display,
+    ): X11Data =
+        X11Data(
+            x11 = x11,
+            display = display,
+            root = x11.XDefaultRootWindow(display),
+            netWmState = x11.XInternAtom(display, "_NET_WM_STATE", false),
+            maxVertAtom = x11.XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_VERT", false),
+            maxHorzAtom = x11.XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", false),
+        )
 
     override suspend fun setFullscreen(window: Window) {
         val x11 = X11.INSTANCE
@@ -28,17 +51,14 @@ object X11FullscreenStrategy : FullscreenStrategy {
             return
         }
         try {
-            val root = x11.XDefaultRootWindow(display)
-            val windowId = x11WindowId(window) ?: findWindowByTitle(x11, display, root)
+            val atoms = extractX11Data(x11, display)
+            val windowId = x11WindowId(window) ?: findWindowByTitle(x11, display, atoms.root)
             if (windowId == null) {
                 AwtFullscreenStrategy.setFullscreen(window)
                 return
             }
-            val netWmState = x11.XInternAtom(display, "_NET_WM_STATE", false)
-            val fullscreenAtom = x11.XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", false)
-
             repeat(MAX_ATTEMPTS) {
-                requestFullscreen(x11, display, root, windowId, netWmState, fullscreenAtom)
+                requestFullscreen(atoms, windowId)
                 delay(RETRY_DELAY_MS.milliseconds)
             }
         } finally {
@@ -53,13 +73,12 @@ object X11FullscreenStrategy : FullscreenStrategy {
         val x11 = X11.INSTANCE
         val display = x11.XOpenDisplay(null) ?: return false
         try {
+            val atoms = extractX11Data(x11, display)
             val windowId = x11WindowId(window)
-            val netWmState = x11.XInternAtom(display, "_NET_WM_STATE", false)
-            val fullscreenAtom = x11.XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", false)
             val deadline = TimeSource.Monotonic.markNow() + timeoutMs.milliseconds
             var applied = false
             while (!applied && deadline.hasNotPassedNow()) {
-                if (windowId != null && isFullscreen(x11, display, windowId, netWmState, fullscreenAtom)) {
+                if (windowId != null && isMaximized(atoms, windowId)) {
                     applied = true
                 } else {
                     delay(FULLSCREEN_POLL_INTERVAL_MS.milliseconds)
@@ -71,22 +90,19 @@ object X11FullscreenStrategy : FullscreenStrategy {
         }
     }
 
-    private fun isFullscreen(
-        x11: X11,
-        display: X11.Display,
+    private fun isMaximized(
+        atoms: X11Data,
         windowId: Long,
-        netWmState: X11.Atom,
-        fullscreenAtom: X11.Atom,
     ): Boolean {
         val actualType = X11.AtomByReference()
         val actualFormat = IntByReference()
         val itemsReturn = NativeLongByReference()
         val bytesAfter = NativeLongByReference()
         val propertyValue = PointerByReference()
-        x11.XGetWindowProperty(
-            display,
+        atoms.x11.XGetWindowProperty(
+            atoms.display,
             X11.Window(windowId),
-            netWmState,
+            atoms.netWmState,
             NativeLong(0),
             NativeLong(MAX_STATE_ATOMS),
             false,
@@ -99,40 +115,40 @@ object X11FullscreenStrategy : FullscreenStrategy {
         )
         val value = propertyValue.value ?: return false
         val atomCount = itemsReturn.value.toInt()
-        var found = false
+        var hasVert = false
+        var hasHorz = false
         if (atomCount > 0) {
-            found = value.getLongArray(0, atomCount).any { it == fullscreenAtom.toLong() }
+            val stateAtoms = value.getLongArray(0, atomCount)
+            hasVert = stateAtoms.any { it == atoms.maxVertAtom.toLong() }
+            hasHorz = stateAtoms.any { it == atoms.maxHorzAtom.toLong() }
         }
-        x11.XFree(value)
-        return found
+        atoms.x11.XFree(value)
+        return hasVert && hasHorz
     }
 
     private fun requestFullscreen(
-        x11: X11,
-        display: X11.Display,
-        root: X11.Window,
+        atoms: X11Data,
         windowId: Long,
-        netWmState: X11.Atom,
-        fullscreenAtom: X11.Atom,
     ) {
         val event = X11.XEvent()
         event.setType(X11.XClientMessageEvent::class.java)
         event.xclient.type = X11.ClientMessage
         event.xclient.window = X11.Window(windowId)
-        event.xclient.message_type = netWmState
+        event.xclient.message_type = atoms.netWmState
         event.xclient.format = CLIENT_MESSAGE_FORMAT
         event.xclient.data.setType(Array<NativeLong>::class.java)
         val dataSlots = event.xclient.data.l
         dataSlots[0] = NativeLong(NET_WM_STATE_ADD)
-        dataSlots[1] = NativeLong(fullscreenAtom.toLong())
-        for (i in 2 until dataSlots.size) {
+        dataSlots[1] = NativeLong(atoms.maxVertAtom.toLong())
+        dataSlots[2] = NativeLong(atoms.maxHorzAtom.toLong())
+        for (i in DATA_SLOT_FIRST_UNUSED until dataSlots.size) {
             dataSlots[i] = NativeLong(NO_DATA)
         }
 
         val mask = NativeLong((X11.SubstructureRedirectMask or X11.SubstructureNotifyMask).toLong())
-        x11.XSendEvent(display, root, 0, mask, event)
-        x11.XSendEvent(display, X11.Window(windowId), 0, NativeLong(0), event)
-        x11.XFlush(display)
+        atoms.x11.XSendEvent(atoms.display, atoms.root, 0, mask, event)
+        atoms.x11.XSendEvent(atoms.display, X11.Window(windowId), 0, NativeLong(0), event)
+        atoms.x11.XFlush(atoms.display)
     }
 
     private fun x11WindowId(window: Window): Long? {

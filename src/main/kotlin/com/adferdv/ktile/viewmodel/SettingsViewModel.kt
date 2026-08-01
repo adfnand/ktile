@@ -7,7 +7,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.coroutines.CoroutineScope
 
-@Suppress("UseDataClass")
 class SettingsViewModel(
     private val coroutineScope: CoroutineScope,
 ) {
