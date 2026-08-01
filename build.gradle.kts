@@ -18,6 +18,7 @@ plugins {
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.jna.platform)
+    implementation(libs.jnativehook)
 
     // Kotest (unit tests)
     testImplementation(libs.kotest.runner.junit5)
