@@ -2,10 +2,18 @@ package com.adferdv.ktile.core.screen
 
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.runBlocking
+import org.junit.Assume.assumeFalse
+import org.junit.Before
 import org.junit.Test
 import java.awt.Frame
+import java.awt.GraphicsEnvironment
 
 class AwtFullscreenStrategyTest {
+
+    @Before
+    fun requireDisplay() {
+        assumeFalse("Skipping: headless environment", GraphicsEnvironment.isHeadless())
+    }
 
     @Test
     fun setFullscreenMakesWindowFullscreen() {
