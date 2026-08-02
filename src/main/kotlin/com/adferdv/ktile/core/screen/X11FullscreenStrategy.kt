@@ -21,11 +21,13 @@ private data class X11Data(
 )
 
 object X11FullscreenStrategy : FullscreenStrategy {
+    private const val NET_WM_STATE_REMOVE = 0L
     private const val NET_WM_STATE_ADD = 1L
     private const val NO_DATA = 0L
     private const val CLIENT_MESSAGE_FORMAT = 32
     private const val MAX_ATTEMPTS = 3
-    private const val RETRY_DELAY_MS = 300L
+    private const val REMOVE_SETTLE_DELAY_MS = 50L
+    private const val ATTEMPT_POLL_INTERVAL_MS = 80L
     private const val FULLSCREEN_POLL_INTERVAL_MS = 50L
     private const val DATA_SLOT_FIRST_UNUSED = 3
     private const val MAX_STATE_ATOMS = 1024L
@@ -52,14 +54,20 @@ object X11FullscreenStrategy : FullscreenStrategy {
         }
         try {
             val atoms = extractX11Data(x11, display)
-            val windowId = x11WindowId(window) ?: findWindowByTitle(x11, display, atoms.root)
+            val windowId = resolveWindowId(x11, display, atoms, window)
             if (windowId == null) {
                 AwtFullscreenStrategy.setFullscreen(window)
                 return
             }
-            repeat(MAX_ATTEMPTS) {
-                requestFullscreen(atoms, windowId)
-                delay(RETRY_DELAY_MS.milliseconds)
+            requestMaximizeState(atoms, windowId, add = false)
+            x11.XFlush(display)
+            delay(REMOVE_SETTLE_DELAY_MS.milliseconds)
+
+            for (attempt in 1..MAX_ATTEMPTS) {
+                requestMaximizeState(atoms, windowId, add = true)
+                x11.XFlush(display)
+                delay(ATTEMPT_POLL_INTERVAL_MS.milliseconds)
+                if (isMaximized(atoms, windowId)) break
             }
         } finally {
             x11.XCloseDisplay(display)
@@ -74,7 +82,7 @@ object X11FullscreenStrategy : FullscreenStrategy {
         val display = x11.XOpenDisplay(null) ?: return false
         try {
             val atoms = extractX11Data(x11, display)
-            val windowId = x11WindowId(window)
+            val windowId = resolveWindowId(x11, display, atoms, window)
             val deadline = TimeSource.Monotonic.markNow() + timeoutMs.milliseconds
             var applied = false
             while (!applied && deadline.hasNotPassedNow()) {
@@ -89,6 +97,13 @@ object X11FullscreenStrategy : FullscreenStrategy {
             x11.XCloseDisplay(display)
         }
     }
+
+    private fun resolveWindowId(
+        x11: X11,
+        display: X11.Display,
+        atoms: X11Data,
+        window: Window,
+    ): Long? = x11WindowId(window) ?: findWindowByTitle(x11, display, atoms.root)
 
     private fun isMaximized(
         atoms: X11Data,
@@ -126,9 +141,10 @@ object X11FullscreenStrategy : FullscreenStrategy {
         return hasVert && hasHorz
     }
 
-    private fun requestFullscreen(
+    private fun requestMaximizeState(
         atoms: X11Data,
         windowId: Long,
+        add: Boolean,
     ) {
         val event = X11.XEvent()
         event.setType(X11.XClientMessageEvent::class.java)
@@ -138,7 +154,7 @@ object X11FullscreenStrategy : FullscreenStrategy {
         event.xclient.format = CLIENT_MESSAGE_FORMAT
         event.xclient.data.setType(Array<NativeLong>::class.java)
         val dataSlots = event.xclient.data.l
-        dataSlots[0] = NativeLong(NET_WM_STATE_ADD)
+        dataSlots[0] = NativeLong(if (add) NET_WM_STATE_ADD else NET_WM_STATE_REMOVE)
         dataSlots[1] = NativeLong(atoms.maxVertAtom.toLong())
         dataSlots[2] = NativeLong(atoms.maxHorzAtom.toLong())
         for (i in DATA_SLOT_FIRST_UNUSED until dataSlots.size) {
