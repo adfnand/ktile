@@ -8,11 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.awt.ComposeWindow
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.window.ApplicationScope
-import androidx.compose.ui.window.Tray
-import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.isTraySupported
 import com.adferdv.ktile.core.hotkey.GlobalHotkeyProvider
@@ -21,20 +16,15 @@ import com.adferdv.ktile.core.hotkey.InputDevicePermissionChecker
 import com.adferdv.ktile.core.hotkey.JNativeHookProvider
 import com.adferdv.ktile.core.hotkey.LinuxEvdevHotkeyProvider
 import com.adferdv.ktile.core.instance.SingleInstanceToggle
-import com.adferdv.ktile.core.screen.FullscreenHelper
+import com.adferdv.ktile.core.screen.isLinux
 import com.adferdv.ktile.ui.InputPermissionWarningDialog
-import com.adferdv.ktile.ui.LayoutPreviewScreen
+import com.adferdv.ktile.ui.KTileTray
+import com.adferdv.ktile.ui.KTileWindow
 import com.adferdv.ktile.ui.createTrayIcon
 import com.adferdv.ktile.viewmodel.SettingsViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.awt.GraphicsEnvironment
 import java.util.logging.Logger
 import javax.swing.SwingUtilities
-import kotlin.time.Duration.Companion.milliseconds
-
-private const val SHOW_POLL_INTERVAL_MS = 100L
-private const val FULLSCREEN_WAIT_TIMEOUT_MS = 2_000L
 
 private val logger = Logger.getLogger("com.adferdv.ktile.Main")
 
@@ -66,15 +56,11 @@ fun main() {
         LaunchedEffect(hotkeyProvider) {
             hotkeyProvider?.register(Hotkey.DEFAULT_TOGGLE) {
                 SwingUtilities.invokeLater {
-                    System.err.println("Hotkey callback: toggling window from visible=$isWindowVisible")
                     isWindowVisible = !isWindowVisible
                 }
             }
         }
 
-        LaunchedEffect(isWindowVisible) {
-            System.err.println("Main: isWindowVisible changed to $isWindowVisible")
-        }
         KTileWindow(
             visible = isWindowVisible,
             onClose = { isWindowVisible = false },
@@ -119,85 +105,3 @@ private fun createLinuxProvider(onPermissionMissing: () -> Unit): GlobalHotkeyPr
         onPermissionMissing()
         null
     }
-
-private fun isLinux(): Boolean = System.getProperty("os.name").lowercase().contains("linux")
-
-@Suppress("FunctionNaming")
-@Composable
-private fun KTileWindow(
-    visible: Boolean,
-    onClose: () -> Unit,
-    viewModel: SettingsViewModel,
-) {
-    // The underlying Window is always composed (visible = true here). Toggling
-    // Compose's own `visible` param unmaps the window and pauses its
-    // frame/recomposition loop while hidden, which caused LaunchedEffect(visible)
-    // to miss transitions on rapid toggles. Instead we keep the window alive at
-    // all times and drive the *actual* native show/hide state imperatively via
-    // the ComposeWindow reference below, so it's never gated behind a paused
-    // recomposition loop.
-    var composeWindow by remember { mutableStateOf<ComposeWindow?>(null) }
-    var previewReady by remember { mutableStateOf(false) }
-
-    Window(
-        visible = true,
-        onCloseRequest = onClose,
-        undecorated = true,
-        transparent = true,
-        alwaysOnTop = true,
-        title = FullscreenHelper.WINDOW_TITLE,
-    ) {
-        LaunchedEffect(Unit) {
-            composeWindow = window
-            window.isVisible = false
-        }
-
-        if (previewReady) {
-            LayoutPreviewScreen(viewModel)
-        }
-    }
-
-    LaunchedEffect(visible, composeWindow) {
-        val win = composeWindow ?: return@LaunchedEffect
-        println("KTileWindow: visible=$visible")
-
-        if (!visible) {
-            previewReady = false
-            win.isVisible = false
-            return@LaunchedEffect
-        }
-
-        System.err.println("KTileWindow: showing window, waiting for window.isShowing")
-        win.isVisible = true
-        while (!win.isShowing) {
-            delay(SHOW_POLL_INTERVAL_MS.milliseconds)
-        }
-        System.err.println("KTileWindow: window is showing, toFront+requestFocus")
-        win.toFront()
-        win.requestFocus()
-        previewReady = true
-        System.err.println("KTileWindow: preview ready")
-
-        launch {
-            val fullscreenApplied = FullscreenHelper.enterFullscreen(win, FULLSCREEN_WAIT_TIMEOUT_MS)
-            System.err.println("KTileWindow: fullscreen applied=$fullscreenApplied")
-        }
-    }
-}
-
-@Suppress("FunctionNaming")
-@Composable
-private fun ApplicationScope.KTileTray(
-    icon: Painter,
-    onToggle: () -> Unit,
-) {
-    Tray(
-        icon = icon,
-        tooltip = "KTile",
-        onAction = onToggle,
-        menu = {
-            Item("Toggle KTile", onClick = onToggle)
-            Item("Quit", onClick = ::exitApplication)
-        },
-    )
-}

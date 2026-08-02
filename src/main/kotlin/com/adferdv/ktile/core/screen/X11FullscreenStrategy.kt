@@ -6,7 +6,6 @@ import com.sun.jna.ptr.IntByReference
 import com.sun.jna.ptr.NativeLongByReference
 import com.sun.jna.ptr.PointerByReference
 import kotlinx.coroutines.delay
-import java.awt.Component
 import java.awt.Window
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
@@ -165,18 +164,6 @@ object X11FullscreenStrategy : FullscreenStrategy {
         atoms.x11.XSendEvent(atoms.display, atoms.root, 0, mask, event)
         atoms.x11.XSendEvent(atoms.display, X11.Window(windowId), 0, NativeLong(0), event)
         atoms.x11.XFlush(atoms.display)
-    }
-
-    private fun x11WindowId(window: Window): Long? {
-        return try {
-            val getPeer = Component::class.java.getDeclaredMethod("getPeer")
-            getPeer.isAccessible = true
-            val peer = getPeer.invoke(window) ?: return null
-            val getWindow = peer.javaClass.getMethod("getWindow")
-            (getWindow.invoke(peer) as? Number)?.toLong()
-        } catch (_: Exception) {
-            null
-        }
     }
 
     private fun findWindowByTitle(
