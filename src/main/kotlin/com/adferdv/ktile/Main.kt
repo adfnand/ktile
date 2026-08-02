@@ -1,7 +1,6 @@
 package com.adferdv.ktile
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,7 +14,7 @@ import com.adferdv.ktile.core.hotkey.Hotkey
 import com.adferdv.ktile.core.hotkey.InputDevicePermissionChecker
 import com.adferdv.ktile.core.hotkey.JNativeHookProvider
 import com.adferdv.ktile.core.hotkey.LinuxEvdevHotkeyProvider
-import com.adferdv.ktile.core.instance.SingleInstanceToggle
+import com.adferdv.ktile.core.instance.SingleInstanceLock
 import com.adferdv.ktile.core.screen.isLinux
 import com.adferdv.ktile.ui.InputPermissionWarningDialog
 import com.adferdv.ktile.ui.KTileTray
@@ -29,8 +28,9 @@ import javax.swing.SwingUtilities
 private val logger = Logger.getLogger("com.adferdv.ktile.Main")
 
 fun main() {
-    val singleInstance = SingleInstanceToggle {}
-    if (singleInstance.trySendToggleAndExit()) {
+    val singleInstance = SingleInstanceLock()
+    if (!singleInstance.tryAcquire()) {
+        logger.info("KTile is already running. Exiting.")
         return
     }
 
@@ -42,16 +42,6 @@ fun main() {
 
         val hotkeyProvider = rememberGlobalHotkeyProvider(onPermissionMissing = { showPermissionWarning = true })
         val trayIcon = remember { createTrayIcon() }
-
-        DisposableEffect(Unit) {
-            singleInstance.setCallback {
-                SwingUtilities.invokeLater {
-                    isWindowVisible = !isWindowVisible
-                }
-            }
-            singleInstance.startServer()
-            onDispose { singleInstance.stopServer() }
-        }
 
         LaunchedEffect(hotkeyProvider) {
             hotkeyProvider?.register(Hotkey.DEFAULT_TOGGLE) {
@@ -78,6 +68,8 @@ fun main() {
             InputPermissionWarningDialog(onDismiss = { showPermissionWarning = false })
         }
     }
+
+    singleInstance.release()
 }
 
 @Composable
