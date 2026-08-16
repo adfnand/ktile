@@ -32,3 +32,10 @@ build
 
 kls_database.db
 .idea/
+
+# Rust
+lib/ktile-hotkey/target
+**/*.rs.bk
+*.pdb
+**/mutants.out*/
+rustc-ice-*.txt

@@ -1,43 +1,99 @@
 package com.adferdv.ktile
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import com.adferdv.ktile.core.screen.FullscreenHelper
-import com.adferdv.ktile.ui.LayoutPreviewScreen
+import androidx.compose.ui.window.isTraySupported
+import com.adferdv.ktile.core.hotkey.GlobalHotkeyProvider
+import com.adferdv.ktile.core.hotkey.Hotkey
+import com.adferdv.ktile.core.hotkey.InputDevicePermissionChecker
+import com.adferdv.ktile.core.hotkey.JNativeHookProvider
+import com.adferdv.ktile.core.hotkey.LinuxEvdevHotkeyProvider
+import com.adferdv.ktile.core.instance.SingleInstanceLock
+import com.adferdv.ktile.core.screen.isLinux
+import com.adferdv.ktile.ui.InputPermissionWarningDialog
+import com.adferdv.ktile.ui.KTileTray
+import com.adferdv.ktile.ui.KTileWindow
+import com.adferdv.ktile.ui.createTrayIcon
 import com.adferdv.ktile.viewmodel.SettingsViewModel
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
+import java.awt.GraphicsEnvironment
+import java.util.logging.Logger
+import javax.swing.SwingUtilities
 
-private const val SHOW_POLL_INTERVAL_MS = 100L
-private const val FULLSCREEN_WAIT_TIMEOUT_MS = 2_000L
+private val logger = Logger.getLogger("com.adferdv.ktile.Main")
 
-fun main() =
-    application {
+fun main() {
+    val singleInstance = SingleInstanceLock()
+    if (!singleInstance.tryAcquire()) {
+        logger.info("KTile is already running. Exiting.")
+        return
+    }
+
+    application(exitProcessOnExit = false) {
         val settingsCoroutineScope = rememberCoroutineScope()
         val settingsViewModel = remember { SettingsViewModel(settingsCoroutineScope) }
-        var previewReady by remember { mutableStateOf(false) }
+        var isWindowVisible by remember { mutableStateOf(false) }
+        var showPermissionWarning by remember { mutableStateOf(false) }
 
-        Window(
-            onCloseRequest = ::exitApplication,
-            undecorated = true,
-            transparent = true,
-            title = FullscreenHelper.WINDOW_TITLE,
-        ) {
-            LaunchedEffect(Unit) {
-                while (!window.isShowing) {
-                    delay(SHOW_POLL_INTERVAL_MS.milliseconds)
+        val hotkeyProvider = rememberGlobalHotkeyProvider(onPermissionMissing = { showPermissionWarning = true })
+        val trayIcon = remember { createTrayIcon() }
+
+        LaunchedEffect(hotkeyProvider) {
+            hotkeyProvider?.register(Hotkey.DEFAULT_TOGGLE) {
+                SwingUtilities.invokeLater {
+                    isWindowVisible = !isWindowVisible
                 }
-                FullscreenHelper.enterFullscreen(window, FULLSCREEN_WAIT_TIMEOUT_MS)
-                previewReady = true
-            }
-            if (previewReady) {
-                LayoutPreviewScreen(settingsViewModel)
             }
         }
+
+        KTileWindow(
+            visible = isWindowVisible,
+            onClose = { isWindowVisible = false },
+            viewModel = settingsViewModel,
+        )
+
+        if (isTraySupported) {
+            KTileTray(
+                icon = trayIcon,
+                onToggle = { isWindowVisible = !isWindowVisible },
+            )
+        }
+
+        if (showPermissionWarning) {
+            InputPermissionWarningDialog(onDismiss = { showPermissionWarning = false })
+        }
+    }
+
+    singleInstance.release()
+}
+
+@Composable
+private fun rememberGlobalHotkeyProvider(onPermissionMissing: () -> Unit): GlobalHotkeyProvider? =
+    remember {
+        when {
+            GraphicsEnvironment.isHeadless() -> null
+            isLinux() -> createLinuxProvider(onPermissionMissing)
+            else -> JNativeHookProvider()
+        }
+    }
+
+private fun createLinuxProvider(onPermissionMissing: () -> Unit): GlobalHotkeyProvider? =
+    try {
+        if (!InputDevicePermissionChecker.hasInputDeviceAccess()) {
+            onPermissionMissing()
+        }
+        LinuxEvdevHotkeyProvider()
+    } catch (e: IllegalStateException) {
+        logger.warning("Failed to initialize Linux evdev hotkey provider: ${e.message}")
+        onPermissionMissing()
+        null
+    } catch (e: UnsatisfiedLinkError) {
+        logger.warning("Failed to load Linux evdev hotkey native library: ${e.message}")
+        onPermissionMissing()
+        null
     }

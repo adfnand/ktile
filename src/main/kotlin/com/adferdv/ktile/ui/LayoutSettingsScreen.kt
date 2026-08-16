@@ -42,6 +42,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.adferdv.ktile.common.NUMBER_FIFTY_SEVEN
+import com.adferdv.ktile.common.NUMBER_FORTY_EIGHT
+import com.adferdv.ktile.common.NUMBER_NINTY
+import com.adferdv.ktile.common.NUMBER_SIXTY_FIVE
 import com.adferdv.ktile.viewmodel.SettingsViewModel
 
 @Suppress("CyclomaticComplexMethod", "LongMethod", "CognitiveComplexMethod", "ComplexCondition")
