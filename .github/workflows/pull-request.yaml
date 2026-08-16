@@ -10,9 +10,9 @@ jobs:
   linux-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: ./.github/actions/ci-build.yaml
+      - uses: ./.github/actions/ci-build
 
   macos-build:
     runs-on: macos-latest
     steps:
-      - uses: ./.github/actions/ci-build.yaml
+      - uses: ./.github/actions/ci-build
