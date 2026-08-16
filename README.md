@@ -1,6 +1,7 @@
 # ktile
+A desktop tiling window manager for Linux and macOS. Press the global hotkey to show the layout and pick a tile combination to arrange the currently focused window accordingly.
 
-A desktop tiling preview tool for Linux and macOS. Press the global hotkey to show the layout, pick a tile, and jump the active window there.
+<img width="2400" height="1350" alt="Screenshot From 2026-08-16 22-57-52" src="https://github.com/user-attachments/assets/178af25c-2913-4c7e-bd84-6a58cfc517bc" />
 
 ## Requirements
 
