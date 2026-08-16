@@ -64,8 +64,8 @@ fun KTileWindow(
 
             window.opacity = 0f
             window.isVisible = false
-            window.setBounds(window.workAreaBounds())
-            window.setFocusableWindowState(false)
+            window.bounds = window.workAreaBounds()
+            window.focusableWindowState = false
         }
 
         Box(
@@ -100,7 +100,9 @@ fun KTileWindow(
         previewReady = true
 
         launch {
+            win.isResizable = true
             FullscreenHelper.enterFullscreen(win, FULLSCREEN_WAIT_TIMEOUT_MS)
+            win.isResizable = false
         }
     }
 }

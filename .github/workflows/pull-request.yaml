@@ -24,3 +24,18 @@ jobs:
 
       - name: Build and Test
         run: ./gradlew build --no-daemon
+
+  rust-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: lib/ktile-hotkey
+
+      - name: Run Rust lib tests
+        working-directory: lib/ktile-hotkey
+        run: cargo test
