@@ -100,6 +100,33 @@ detekt {
     ignoreFailures = false
 }
 
+kover {
+    reports {
+        filters {
+            excludes {
+                // App bootstrap and OS-specific integration code: not unit-testable headless,
+                // covered by functional tests (core.screen) and per-OS integration tests (providers, window, tray).
+                classes(
+                    "com.adferdv.ktile.MainKt",
+                    "com.adferdv.ktile.ComposableSingletons*",
+                    "com.adferdv.ktile.core.screen.*",
+                    "com.adferdv.ktile.core.hotkey.LinuxEvdevHotkeyProvider*",
+                    "com.adferdv.ktile.core.hotkey.JNativeHookProvider*",
+                    "com.adferdv.ktile.core.hotkey.KtileHotkeyNative*",
+                    "com.adferdv.ktile.core.hotkey.InputDevicePermissionChecker",
+                    "com.adferdv.ktile.ui.KTileWindowKt*",
+                    "com.adferdv.ktile.ui.KTileTrayKt*",
+                )
+            }
+        }
+        verify {
+            rule {
+                minBound(90)
+            }
+        }
+    }
+}
+
 ktlint {
     filter {
         exclude { element -> element.file.path.contains("generated/") }

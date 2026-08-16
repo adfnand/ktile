@@ -7,7 +7,6 @@ import com.adferdv.ktile.viewmodel.SettingsViewModel
 @Composable
 fun App(settingsViewModel: SettingsViewModel) {
     MaterialTheme {
-        // SettingsScreen(settingsViewModel)
         LayoutPreviewScreen(settingsViewModel)
     }
 }
