@@ -9,18 +9,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.isTraySupported
+import com.adferdv.ktile.core.comms.AppSocketComms
 import com.adferdv.ktile.core.hotkey.GlobalHotkeyProvider
 import com.adferdv.ktile.core.hotkey.Hotkey
 import com.adferdv.ktile.core.hotkey.InputDevicePermissionChecker
 import com.adferdv.ktile.core.hotkey.JNativeHookProvider
 import com.adferdv.ktile.core.hotkey.LinuxEvdevHotkeyProvider
-import com.adferdv.ktile.core.instance.SingleInstanceLock
 import com.adferdv.ktile.core.screen.isLinux
 import com.adferdv.ktile.ui.InputPermissionWarningDialog
 import com.adferdv.ktile.ui.KTileTray
 import com.adferdv.ktile.ui.KTileWindow
+import com.adferdv.ktile.ui.SettingsWindow
 import com.adferdv.ktile.ui.createTrayIcon
 import com.adferdv.ktile.viewmodel.SettingsViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.consumeEach
 import java.awt.GraphicsEnvironment
 import java.util.logging.Logger
 import javax.swing.SwingUtilities
@@ -28,20 +31,35 @@ import javax.swing.SwingUtilities
 private val logger = Logger.getLogger("com.adferdv.ktile.Main")
 
 fun main() {
-    val singleInstance = SingleInstanceLock()
-    if (!singleInstance.tryAcquire()) {
-        logger.info("KTile is already running. Exiting.")
+    val settingsRequestChannel = Channel<Unit>(Channel.CONFLATED)
+    val acquired =
+        AppSocketComms.tryAcquireServer { command ->
+            if (command == AppSocketComms.COMMAND_SHOW_SETTINGS) {
+                settingsRequestChannel.trySend(Unit)
+            }
+        }
+
+    if (!acquired) {
         return
     }
 
+    runApplication(settingsRequestChannel)
+}
+
+private fun runApplication(settingsRequestChannel: Channel<Unit>) {
     application(exitProcessOnExit = false) {
         val settingsCoroutineScope = rememberCoroutineScope()
         val settingsViewModel = remember { SettingsViewModel(settingsCoroutineScope) }
         var isWindowVisible by remember { mutableStateOf(false) }
+        var showSettings by remember { mutableStateOf(false) }
         var showPermissionWarning by remember { mutableStateOf(false) }
 
         val hotkeyProvider = rememberGlobalHotkeyProvider(onPermissionMissing = { showPermissionWarning = true })
         val trayIcon = remember { createTrayIcon() }
+
+        LaunchedEffect(Unit) {
+            settingsRequestChannel.consumeEach { showSettings = true }
+        }
 
         LaunchedEffect(hotkeyProvider) {
             hotkeyProvider?.register(Hotkey.DEFAULT_TOGGLE) {
@@ -57,10 +75,19 @@ fun main() {
             viewModel = settingsViewModel,
         )
 
-        if (isTraySupported) {
+        if (!isLinux() && isTraySupported) {
             KTileTray(
                 icon = trayIcon,
                 onToggle = { isWindowVisible = !isWindowVisible },
+                onSettings = { showSettings = true },
+            )
+        }
+
+        if (showSettings) {
+            SettingsWindow(
+                isVisible = showSettings,
+                onClose = { showSettings = false },
+                viewModel = settingsViewModel,
             )
         }
 
@@ -68,8 +95,6 @@ fun main() {
             InputPermissionWarningDialog(onDismiss = { showPermissionWarning = false })
         }
     }
-
-    singleInstance.release()
 }
 
 @Composable

@@ -107,7 +107,7 @@ kover {
                 // App bootstrap and OS-specific integration code: not unit-testable headless,
                 // covered by functional tests (core.screen) and per-OS integration tests (providers, window, tray).
                 classes(
-                    "com.adferdv.ktile.MainKt",
+                    "com.adferdv.ktile.MainKt*",
                     "com.adferdv.ktile.ComposableSingletons*",
                     "com.adferdv.ktile.core.screen.*",
                     "com.adferdv.ktile.core.hotkey.LinuxEvdevHotkeyProvider*",
