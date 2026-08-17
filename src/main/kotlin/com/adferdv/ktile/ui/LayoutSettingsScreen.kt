@@ -28,24 +28,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.adferdv.ktile.common.NUMBER_FIFTY_SEVEN
-import com.adferdv.ktile.common.NUMBER_FORTY_EIGHT
-import com.adferdv.ktile.common.NUMBER_NINTY
-import com.adferdv.ktile.common.NUMBER_SIXTY_FIVE
+import com.adferdv.ktile.core.hotkey.getDisplayCharFromKeyEvent
 import com.adferdv.ktile.viewmodel.SettingsViewModel
 
 @Suppress("CyclomaticComplexMethod", "LongMethod", "CognitiveComplexMethod", "ComplexCondition")
@@ -94,7 +87,7 @@ fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
                 .testTag("layout-screen")
                 .onKeyEvent { keyEvent ->
                     if (keyEvent.type == KeyEventType.KeyDown) {
-                        val displayChar = getDisplayCharFromKeyEvent(keyEvent)
+                        val displayChar = keyEvent.getDisplayCharFromKeyEvent()
                         if (displayChar != null && displayChar.length == 1 && displayChar[0].isLetterOrDigit()) {
                             selectedPosition.value?.let { (row, col) ->
                                 if (row in keyLabels.indices && col in keyLabels[row].indices) {
@@ -330,20 +323,5 @@ fun KeyTile(
                 fontWeight = FontWeight.Bold,
             )
         }
-    }
-}
-
-fun getDisplayCharFromKeyEvent(keyEvent: KeyEvent): String? {
-    keyEvent.awtEventOrNull?.let { awtEvent ->
-        return java.awt.event.KeyEvent
-            .getKeyText(awtEvent.keyCode)
-            .takeIf { it.length == 1 && it[0].isLetterOrDigit() }
-            ?.uppercase()
-    }
-
-    return when (val code = keyEvent.key.nativeKeyCode) {
-        in NUMBER_SIXTY_FIVE..NUMBER_NINTY -> code.toChar().toString().uppercase()
-        in NUMBER_FORTY_EIGHT..NUMBER_FIFTY_SEVEN -> code.toChar().toString()
-        else -> null
     }
 }

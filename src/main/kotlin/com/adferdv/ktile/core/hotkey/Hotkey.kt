@@ -14,3 +14,18 @@ data class Hotkey(
             )
     }
 }
+
+fun Hotkey.toDisplayString(): String {
+    val modifierNames =
+        modifiers
+            .map { modifier ->
+                when (modifier) {
+                    ModifierKey.SHIFT -> "Shift"
+                    ModifierKey.CTRL -> "Ctrl"
+                    ModifierKey.ALT -> "Alt"
+                    ModifierKey.SUPER -> "Super"
+                }
+            }.sorted()
+    val keyName = KEY_CODE_TO_DISPLAY_NAME[keyCode] ?: "Key$keyCode"
+    return if (modifierNames.isEmpty()) keyName else (modifierNames + keyName).joinToString("+")
+}

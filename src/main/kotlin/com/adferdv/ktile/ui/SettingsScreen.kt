@@ -52,7 +52,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             if (selectedTab == SettingsTab.LAYOUT) {
                 LayoutSettingsScreen(viewModel)
             } else {
-                HotkeySettingsScreen()
+                HotkeySettingsScreen(viewModel)
             }
         }
     }

@@ -1,5 +1,8 @@
 package com.adferdv.ktile.viewmodel
 
+import com.adferdv.ktile.core.hotkey.Hotkey
+import com.adferdv.ktile.core.hotkey.ModifierKey
+import com.adferdv.ktile.core.hotkey.toDisplayString
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,5 +36,23 @@ class SettingsViewModelTest {
                 listOf("A", "S", "D", "F"),
                 listOf("Z", "X", "C", "V"),
             )
+    }
+
+    @Test
+    fun `default toggle hotkey is Super plus K`() {
+        val viewModel = SettingsViewModel(CoroutineScope(Dispatchers.Unconfined))
+
+        viewModel.toggleHotkey shouldBe Hotkey.DEFAULT_TOGGLE
+        viewModel.toggleHotkey.toDisplayString() shouldBe "Super+K"
+    }
+
+    @Test
+    fun `toggle hotkey can be updated`() {
+        val viewModel = SettingsViewModel(CoroutineScope(Dispatchers.Unconfined))
+
+        val newHotkey = Hotkey(10, setOf(ModifierKey.CTRL, ModifierKey.SHIFT))
+        viewModel.toggleHotkey = newHotkey
+
+        viewModel.toggleHotkey shouldBe newHotkey
     }
 }

@@ -5,12 +5,16 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.adferdv.ktile.core.hotkey.Hotkey
 import kotlinx.coroutines.CoroutineScope
 
 class SettingsViewModel(
     private val coroutineScope: CoroutineScope,
 ) {
     var layoutSettings: LayoutSettings by mutableStateOf(LayoutSettings.default())
+    var toggleHotkey: Hotkey by mutableStateOf(Hotkey.DEFAULT_TOGGLE)
+    var registrationError: String? by mutableStateOf(null)
+    var isHotkeyCaptureActive: Boolean by mutableStateOf(false)
 }
 
 data class LayoutSettings(
