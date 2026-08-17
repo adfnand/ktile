@@ -116,6 +116,7 @@ kover {
                     "com.adferdv.ktile.core.hotkey.InputDevicePermissionChecker",
                     "com.adferdv.ktile.ui.KTileWindowKt*",
                     "com.adferdv.ktile.ui.KTileTrayKt*",
+                    "com.adferdv.ktile.ui.GlobalHotkeyRegistration*",
                 )
             }
         }
