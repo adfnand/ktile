@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.isTraySupported
 import com.adferdv.ktile.core.comms.AppSocketComms
+import com.adferdv.ktile.core.persistence.repo.SettingsRepository
 import com.adferdv.ktile.core.screen.isLinux
 import com.adferdv.ktile.ui.InputPermissionWarningDialog
 import com.adferdv.ktile.ui.KTileTray
@@ -40,13 +41,17 @@ fun main() {
 }
 
 private fun runApplication(settingsRequestChannel: Channel<Unit>) {
+    val settingsRepository =
+        runCatching { SettingsRepository() }
+            .onFailure { logger.warning("Failed to initialize settings repository: ${it.message}") }
+            .getOrNull()
+
     application(exitProcessOnExit = false) {
         val settingsCoroutineScope = rememberCoroutineScope()
-        val settingsViewModel = remember { SettingsViewModel(settingsCoroutineScope) }
+        val settingsViewModel = remember { SettingsViewModel(settingsCoroutineScope, settingsRepository) }
         var isWindowVisible by remember { mutableStateOf(false) }
         var showSettings by remember { mutableStateOf(false) }
         var showPermissionWarning by remember { mutableStateOf(false) }
-
         val trayIcon = remember { createTrayIcon() }
 
         LaunchedEffect(Unit) {

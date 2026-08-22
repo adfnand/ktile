@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.compose)
     alias(libs.plugins.kotlin.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.kover)
@@ -21,6 +22,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.jna.platform)
     implementation(libs.jnativehook)
+    implementation(libs.kotlinx.serialization.json)
 
     // Kotest (unit tests)
     testImplementation(libs.kotest.runner.junit5)
