@@ -69,9 +69,7 @@ private fun registerHotkeySafely(
     viewModel: SettingsViewModel,
 ): Hotkey =
     try {
-        provider.register(hotkey) {
-            SwingUtilities.invokeLater { onToggle() }
-        }
+        provider.register(hotkey) { SwingUtilities.invokeLater { onToggle() } }
         viewModel.registrationError = null
         hotkey
     } catch (e: IllegalStateException) {

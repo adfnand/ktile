@@ -3,19 +3,17 @@ package com.adferdv.ktile.ui
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import com.adferdv.ktile.viewmodel.LayoutSettings
+import com.adferdv.ktile.viewmodel.AppLayoutSettings
 import com.adferdv.ktile.viewmodel.SettingsViewModel
 import org.junit.Rule
 import org.junit.Test
 
-@OptIn(ExperimentalTestApi::class)
 class LayoutPreviewScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -44,8 +42,7 @@ class LayoutPreviewScreenTest {
         setContent()
         composeTestRule.waitForIdle()
 
-        val expectedLabels =
-            listOf("Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V")
+        val expectedLabels = listOf("Q", "W", "E", "R", "A", "S", "D", "F", "Z", "X", "C", "V")
         for (label in expectedLabels) {
             composeTestRule.onNodeWithText(label).assertIsDisplayed()
         }
@@ -76,7 +73,7 @@ class LayoutPreviewScreenTest {
         composeTestRule.onNodeWithText("Z").assertIsDisplayed()
 
         viewModel.layoutSettings =
-            LayoutSettings(
+            AppLayoutSettings(
                 columnWeights = mutableStateListOf(1, 1),
                 rowWeights = mutableStateListOf(1, 1),
                 keyLabels =

@@ -65,9 +65,7 @@ fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
         keyLabels.removeAt(index)
         rowWeights.removeAt(index)
         usedKeys.value -= removedKeys
-        selectedPosition.value?.let { (row, _) ->
-            if (row == index) selectedPosition.value = null
-        }
+        selectedPosition.value?.let { (row, _) -> if (row == index) selectedPosition.value = null }
     }
 
     fun clearSelectionIfHidden() {
@@ -80,17 +78,21 @@ fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
 
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
+            Modifier.fillMaxSize()
                 .padding(16.dp)
                 .focusRequester(focusRequester)
                 .testTag("layout-screen")
                 .onKeyEvent { keyEvent ->
                     if (keyEvent.type == KeyEventType.KeyDown) {
                         val displayChar = keyEvent.getDisplayCharFromKeyEvent()
-                        if (displayChar != null && displayChar.length == 1 && displayChar[0].isLetterOrDigit()) {
+                        if (displayChar != null &&
+                            displayChar.length == 1 &&
+                            displayChar[0].isLetterOrDigit()
+                        ) {
                             selectedPosition.value?.let { (row, col) ->
-                                if (row in keyLabels.indices && col in keyLabels[row].indices) {
+                                if (row in keyLabels.indices &&
+                                    col in keyLabels[row].indices
+                                ) {
                                     val oldKey = keyLabels[row][col]
                                     val newKey = displayChar.uppercase()
 
@@ -98,10 +100,12 @@ fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
                                         showDialog.value = true
                                         dialogMessage.value =
                                             "Selected key is already added to the layout.\n" +
-                                            "Please, replace current position with another key and try again."
+                                            "Please, replace current position with " +
+                                            "another key and try again."
                                     } else {
                                         keyLabels[row][col] = newKey
-                                        usedKeys.value = usedKeys.value - oldKey + newKey
+                                        usedKeys.value =
+                                            usedKeys.value - oldKey + newKey
                                         selectedPosition.value = null
                                     }
                                     return@onKeyEvent true
@@ -110,7 +114,8 @@ fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
                         }
                     }
                     false
-                }.focusable(),
+                }
+                .focusable(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -147,10 +152,7 @@ fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
         rowWeights.forEachIndexed { rowIndex, rowWeight ->
             if (rowWeight > 0) {
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(rowWeight.toFloat()),
+                    modifier = Modifier.fillMaxWidth().weight(rowWeight.toFloat()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -185,15 +187,16 @@ fun LayoutSettingsScreen(viewModel: SettingsViewModel) {
                                     isSelected = selectedPosition.value == rowIndex to colIndex,
                                     onClick = {
                                         selectedPosition.value =
-                                            if (selectedPosition.value == rowIndex to colIndex) {
+                                            if (selectedPosition.value ==
+                                                rowIndex to colIndex
+                                            ) {
                                                 null
                                             } else {
                                                 rowIndex to colIndex
                                             }
                                     },
                                     modifier =
-                                        Modifier
-                                            .weight(colWeight.toFloat())
+                                        Modifier.weight(colWeight.toFloat())
                                             .fillMaxHeight(),
                                 )
                             }
@@ -252,14 +255,11 @@ fun WeightControl(
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier =
-                Modifier
-                    .size(28.dp)
-                    .testTag(testTag?.let { "$it-minus" } ?: "")
-                    .clickable(
-                        enabled = enabled && value > 0,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { onDecrement() },
+                Modifier.size(28.dp).testTag(testTag?.let { "$it-minus" } ?: "").clickable(
+                    enabled = enabled && value > 0,
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { onDecrement() },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         Text(
@@ -267,14 +267,11 @@ fun WeightControl(
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier =
-                Modifier
-                    .size(28.dp)
-                    .testTag(testTag?.let { "$it-plus" } ?: "")
-                    .clickable(
-                        enabled = enabled,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { onIncrement() },
+                Modifier.size(28.dp).testTag(testTag?.let { "$it-plus" } ?: "").clickable(
+                    enabled = enabled,
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { onIncrement() },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
     }
